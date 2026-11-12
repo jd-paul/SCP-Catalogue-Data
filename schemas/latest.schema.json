@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/jd-paul/SCP-Catalogue-Data/schemas/latest.schema.json",
+  "title": "SCP Catalogue Latest feed",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "generatedAt", "articles"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "articles": {
+      "type": "array",
+      "maxItems": 50,
+      "items": { "$ref": "#/$defs/article" }
+    }
+  },
+  "$defs": {
+    "attribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "name", "order", "isCurrent"],
+      "properties": {
+        "type": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "date": { "type": "string", "format": "date-time" },
+        "order": { "type": "integer", "minimum": 0 },
+        "isCurrent": { "type": "boolean" }
+      }
+    },
+    "article": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "wikidotId", "canonicalURL", "type", "wikiTitle", "displayTitle", "attributions", "tags", "rating", "ratingFetchedAt", "createdAt", "revisionCount", "objectClass", "series", "taleYear", "deltaVersion"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "wikidotId": { "type": ["integer", "null"], "minimum": 1 },
+        "canonicalURL": { "type": "string", "pattern": "^https://scp-wiki\\.wikidot\\.com/" },
+        "type": { "enum": ["scp", "tale"] },
+        "wikiTitle": { "type": "string", "minLength": 1 },
+        "displayTitle": { "type": "string", "minLength": 1 },
+        "attributions": { "type": "array", "items": { "$ref": "#/$defs/attribution" } },
+        "tags": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+        "rating": { "type": "integer" },
+        "ratingFetchedAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "revisionCount": { "type": "integer", "minimum": 0 },
+        "objectClass": { "type": ["string", "null"] },
+        "series": { "type": ["integer", "null"], "minimum": 1 },
+        "taleYear": { "type": ["integer", "null"], "minimum": 1900 },
+        "deltaVersion": { "type": "null" }
+      }
+    }
+  }
+}

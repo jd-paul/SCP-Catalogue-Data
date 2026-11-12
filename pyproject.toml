@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scp-catalogue-data"
+version = "0.1.0"
+description = "Static SCP Catalogue feed and metadata baseline generator"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+    "httpx>=0.28,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "jsonschema>=4.23,<5",
+    "pytest>=8,<10",
+]
+
+[project.scripts]
+scp-catalogue-data = "scp_catalogue_data.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

@@ -1,0 +1,74 @@
+name: Generate static catalogue artifacts
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Artifact set to generate
+        type: choice
+        options: [latest, baseline]
+        default: latest
+      publish:
+        description: Publish validated artifacts to GitHub Releases
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: python -m pip install -e '.[dev]'
+      - run: python -m pytest
+      - name: Preserve current baseline references
+        if: inputs.mode == 'latest'
+        run: |
+          mkdir -p dist
+          status=$(curl -sS -o dist/manifest.json -w '%{http_code}' "https://github.com/${{ github.repository }}/releases/download/feed/manifest.json")
+          if [ "$status" = "404" ]; then
+            rm -f dist/manifest.json
+          elif [ "$status" != "200" ]; then
+            exit 1
+          fi
+      - run: scp-catalogue-data '${{ inputs.mode }}' --output dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: catalogue-${{ inputs.mode }}-${{ github.run_id }}
+          path: dist/
+          retention-days: 7
+
+  publish:
+    if: inputs.publish
+    needs: generate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: catalogue-${{ inputs.mode }}-${{ github.run_id }}
+          path: dist
+      - name: Publish immutable baseline and current feed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MODE: ${{ inputs.mode }}
+        run: |
+          set -euo pipefail
+          version=$(python -c 'import json; print(json.load(open("dist/manifest.json"))["feedVersion"])')
+          if ! gh release view feed >/dev/null 2>&1; then
+            gh release create feed --title 'Current SCP Catalogue feed' --notes 'Rolling current feed; immutable baselines have versioned releases.'
+          fi
+          if [ "$MODE" = "baseline" ]; then
+            gh release create "baseline-$version" "dist/baselines/metadata-$version.zip" \
+              --title "Metadata baseline $version" \
+              --notes 'Immutable metadata-only SCP Catalogue baseline. See licenses.txt inside the package.'
+          fi
+          gh release upload feed dist/latest.json --clobber
+          gh release upload feed dist/manifest.json --clobber

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/jd-paul/SCP-Catalogue-Data/schemas/manifest.schema.json",
+  "title": "SCP Catalogue feed manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "feedVersion", "generatedAt", "minimumAppVersion", "latest", "deltas", "baselines"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "feedVersion": { "type": "string", "minLength": 1 },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "minimumAppVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "latest": { "$ref": "#/$defs/artifact" },
+    "deltas": { "type": "array", "maxItems": 0 },
+    "baselines": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "version", "url", "bytes", "sha256"],
+        "properties": {
+          "id": { "const": "metadata" },
+          "version": { "type": "string", "minLength": 1 },
+          "url": { "type": "string", "pattern": "^https://" },
+          "bytes": { "type": "integer", "minimum": 1 },
+          "sha256": { "$ref": "#/$defs/sha256" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "bytes", "sha256"],
+      "properties": {
+        "url": { "type": "string", "minLength": 1 },
+        "bytes": { "type": "integer", "minimum": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  }
+}
