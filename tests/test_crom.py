@@ -88,3 +88,19 @@ def test_response_size_limit_is_enforced(crom_node):
     client = CromClient(httpx.MockTransport(lambda _: response(payload([crom_node]))), max_response_bytes=20)
     with pytest.raises(CromError, match="size limit"):
         client.fetch_latest()
+
+
+def test_graphql_rate_limit_waits_and_retries(crom_node):
+    calls = 0
+    sleeps = []
+
+    def handler(_):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return response({"errors": [{"message": "You're making requests too often! Please wait for 15 seconds."}]})
+        return response(payload([crom_node]))
+
+    client = CromClient(httpx.MockTransport(handler), sleeper=sleeps.append, jitter=lambda: 0)
+    assert client.fetch_latest() == [crom_node]
+    assert sleeps == [15]

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import random
+import re
 import time
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
@@ -122,7 +123,12 @@ class CromClient:
             except (UnicodeDecodeError, json.JSONDecodeError) as error:
                 raise CromError("Crom returned invalid JSON") from error
             if payload.get("errors"):
-                raise CromError(f"Crom GraphQL errors: {json.dumps(payload['errors'])[:2000]}")
+                serialized_errors = json.dumps(payload["errors"])
+                wait = re.search(r"Please wait for (\d+(?:\.\d+)?) seconds", serialized_errors)
+                if "requests too often" in serialized_errors and wait and attempt < self._max_retries:
+                    self._sleep(float(wait.group(1)) + self._jitter())
+                    continue
+                raise CromError(f"Crom GraphQL errors: {serialized_errors[:2000]}")
             data = payload.get("data")
             if not isinstance(data, dict) or not isinstance(data.get("pages"), dict):
                 raise CromError("Crom response is missing complete page data")
